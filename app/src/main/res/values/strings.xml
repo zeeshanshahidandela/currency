@@ -3,4 +3,7 @@
     <string name="select_base_currency_label">Select Base Currency</string>
     <string name="currency_to_convert_label">Currency to convert</string>
     <string name="details">Details</string>
+    <string name="alert">Alert</string>
+    <string name="no_Internet">Please check your internet connection and try again.</string>
+    <string name="label_ok">Okay</string>
 </resources>
