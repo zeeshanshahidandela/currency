@@ -1,6 +1,6 @@
 package com.curreny.converter.presentation.viewModels
 
-import androidx.lifecycle.LiveData
+
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,7 +9,6 @@ import com.curreny.converter.base.utils.MutableEvent
 import com.curreny.converter.data.repository.CurrencyRepository
 import com.curreny.converter.domain.entity.ConversionTransaction
 import com.curreny.converter.domain.entity.CurrencyModel
-import com.curreny.converter.domain.entity.Entry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*

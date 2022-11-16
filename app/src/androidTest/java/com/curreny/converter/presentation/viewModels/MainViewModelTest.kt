@@ -27,7 +27,7 @@ import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
 @AndroidEntryPoint
-class MainViewModelTest: TestCase() {
+class MainViewModelTest {
 
     @Inject
     protected lateinit var currencyClientApi: CurrencyApiClient
@@ -39,7 +39,7 @@ class MainViewModelTest: TestCase() {
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     @Before
-    public override fun setUp() {
+    fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, DatabaseRoom::class.java)
             .allowMainThreadQueries().build()

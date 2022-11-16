@@ -24,6 +24,6 @@ interface CurrencyDao {
     fun deleteConversion(conversionTransaction: ConversionTransaction)
 
     @Query("SELECT * from ConversionTransaction WHERE CAST((timeStamp / 1000) AS INTEGER) BETWEEN strftime('%s','now','-3 days') AND strftime('%s','now')  ORDER BY timeStamp DESC;")
-    fun getHistory() : List<ConversionTransaction>
+    suspend fun getHistory() : List<ConversionTransaction>
 
 }

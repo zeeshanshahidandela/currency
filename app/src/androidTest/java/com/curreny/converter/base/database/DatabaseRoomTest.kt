@@ -16,13 +16,13 @@ import org.junit.runner.RunWith
 import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
-class DatabaseRoomTest: TestCase(){
+class DatabaseRoomTest{
 
     private lateinit var database: DatabaseRoom
     private lateinit var dao: CurrencyDao
 
     @Before
-    public override fun setUp() {
+    fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, DatabaseRoom::class.java).build()
         dao = database.getConversion()
