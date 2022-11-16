@@ -1,20 +1,29 @@
 package com.curreny.converter.data.repository
 
+import androidx.lifecycle.LiveData
 import com.curreny.converter.data.remote.datasource.CurrencyRemoteDataSource
 import com.curreny.converter.data.remote.models.SymbolsResponseData
 import com.curreny.converter.base.utils.ApiState
 import com.curreny.converter.data.dto.convertToCurrencyModel
+import com.curreny.converter.data.local.datasoruce.CurrencyLocalDataSource
 import com.curreny.converter.data.remote.models.LatestRatesResponse
+import com.curreny.converter.domain.entity.ConversionTransaction
 import com.curreny.converter.domain.entity.CurrencyModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class CurrencyRepository @Inject constructor(private val currencyRemoteDataSource: CurrencyRemoteDataSource) {
+class CurrencyRepository @Inject constructor(
+    private val currencyRemoteDataSource: CurrencyRemoteDataSource,
+    private val currencyLocalDataSource: CurrencyLocalDataSource,
+    private val dispatcher: CoroutineDispatcher
+) {
 
-    fun getAllCurrencies(): Flow<List<CurrencyModel>?> = flow {
+    suspend fun getAllCurrencies(): Flow<List<CurrencyModel>?> = flow {
 
             when (val response = currencyRemoteDataSource.getAllCurrencies()) {
                 is ApiState.Success -> {
@@ -24,184 +33,66 @@ class CurrencyRepository @Inject constructor(private val currencyRemoteDataSourc
                 is ApiState.Failure -> emit(emptyList())
                 is ApiState.Empty -> emit(emptyList())
             }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(dispatcher)
 
-    fun getConvertedCurrency(base: String, conversion: String): Flow<ApiState<LatestRatesResponse>> = flow {
-        emit(currencyRemoteDataSource.getLatestRates(base, conversion))
-    }.flowOn(Dispatchers.IO)
+    suspend fun getConvertedCurrency(base: String, conversion: String): Flow<ApiState<ConversionTransaction>> = flow {
+        when(val response = currencyRemoteDataSource.getLatestRates(base, conversion)){
+            is ApiState.Success -> {
+                val data =  response.data
+                if(data.success == true) {
+                    val convertedRate = data.rates?.get(conversion)
+                    if(convertedRate != null) {
+                        val transaction = ConversionTransaction(System.currentTimeMillis(), base, conversion, convertedRate)
+                        currencyLocalDataSource.saveTransactions(transaction)
+                        emit(ApiState.Success(transaction))
+                    }
+                }
+            }
+            is ApiState.Failure -> {
+                emit(ApiState.Failure(response.msg))
+            }
+            is ApiState.Loading -> {
+                emit(ApiState.Loading)
+            }
+            is ApiState.Empty -> {
+                emit(ApiState.Empty)
+            }
+        }
 
-    private fun makeList() : List<CurrencyModel> {
-        val currencyModels = mutableListOf<CurrencyModel>()
-        // taken all these currencies from symbol api
-        currencyModels.add(CurrencyModel("AED", "United Arab Emirates Dirham"))
-        currencyModels.add(CurrencyModel("AFN","Afghan Afghani"))
-        currencyModels.add(CurrencyModel("ALL","Albanian Lek"))
-        currencyModels.add(CurrencyModel("AMD","Armenian Dram"))
-        currencyModels.add(CurrencyModel("ANG", "Netherlands Antillean Guilder"))
-        currencyModels.add(CurrencyModel("AOA", "Angolan Kwanza"))
-        currencyModels.add(CurrencyModel("ARS", "Argentine Peso"))
-        currencyModels.add(CurrencyModel("AUD", "Australian Dollar"))
-        currencyModels.add(CurrencyModel("AWG", "Aruban Florin"))
-        currencyModels.add(CurrencyModel("AZN", "Azerbaijani Manat"))
-        currencyModels.add(CurrencyModel("BAM", "Bosnia-Herzegovina Convertible Mark"))
-        currencyModels.add(CurrencyModel("BBD", "Barbadian Dollar"))
-        currencyModels.add(CurrencyModel("BDT", "Bangladeshi Taka"))
-        currencyModels.add(CurrencyModel("BGN", "Bulgarian Lev"))
-        currencyModels.add(CurrencyModel("BHD", "Bahraini Dinar"))
-        currencyModels.add(CurrencyModel("BIF", "Burundian Franc"))
-        currencyModels.add(CurrencyModel("BMD", "Bermudan Dollar"))
-        currencyModels.add(CurrencyModel("BND", "Brunei Dollar"))
-        currencyModels.add(CurrencyModel("BOB", "Bolivian Boliviano"))
-        currencyModels.add(CurrencyModel("BRL", "Brazilian Real"))
-        currencyModels.add(CurrencyModel("BSD", "Bahamian Dollar",))
-        currencyModels.add(CurrencyModel("BTC", "Bitcoin",))
-        currencyModels.add(CurrencyModel("BTN", "Bhutanese Ngultrum",))
-        currencyModels.add(CurrencyModel("BWP", "Botswanan Pula",))
-        currencyModels.add(CurrencyModel("BYN", "New Belarusian Ruble",))
-        currencyModels.add(CurrencyModel("BYR", "Belarusian Ruble",))
-        currencyModels.add(CurrencyModel("BZD", "Belize Dollar",))
-        currencyModels.add(CurrencyModel("CAD", "Canadian Dollar",))
-        currencyModels.add(CurrencyModel("CDF", "Congolese Franc",))
-        currencyModels.add(CurrencyModel("CHF", "Swiss Franc",))
-        currencyModels.add(CurrencyModel("CLF", "Chilean Unit of Account (UF)",))
-        currencyModels.add(CurrencyModel("CLP", "Chilean Peso",))
-        currencyModels.add(CurrencyModel("CNY", "Chinese Yuan",))
-        currencyModels.add(CurrencyModel("COP", "Colombian Peso",))
-        currencyModels.add(CurrencyModel("CRC", "Costa Rican Colón",))
-        currencyModels.add(CurrencyModel("CUC", "Cuban Convertible Peso",))
-        currencyModels.add(CurrencyModel("CUP", "Cuban Peso",))
-        currencyModels.add(CurrencyModel("CVE", "Cape Verdean Escudo",))
-        currencyModels.add(CurrencyModel("CZK", "Czech Republic Koruna",))
-        currencyModels.add(CurrencyModel("DJF", "Djiboutian Franc",))
-        currencyModels.add(CurrencyModel("DKK", "Danish Krone",))
-        currencyModels.add(CurrencyModel("DOP", "Dominican Peso",))
-        currencyModels.add(CurrencyModel("DZD", "Algerian Dinar",))
-        currencyModels.add(CurrencyModel("EGP", "Egyptian Pound",))
-        currencyModels.add(CurrencyModel("ERN", "Eritrean Nakfa",))
-        currencyModels.add(CurrencyModel("ETB", "Ethiopian Birr",))
-        currencyModels.add(CurrencyModel("EUR", "Euro",))
-        currencyModels.add(CurrencyModel("FJD", "Fijian Dollar",))
-        currencyModels.add(CurrencyModel("FKP", "Falkland Islands Pound",))
-        currencyModels.add(CurrencyModel("GBP", "British Pound Sterling",))
-        currencyModels.add(CurrencyModel("GEL", "Georgian Lari",))
-        currencyModels.add(CurrencyModel("GGP", "Guernsey Pound",))
-        currencyModels.add(CurrencyModel("GHS", "Ghanaian Cedi",))
-        currencyModels.add(CurrencyModel("GIP", "Gibraltar Pound",))
-        currencyModels.add(CurrencyModel("GMD", "Gambian Dalasi",))
-        currencyModels.add(CurrencyModel("GNF", "Guinean Franc",))
-        currencyModels.add(CurrencyModel("GTQ", "Guatemalan Quetzal",))
-        currencyModels.add(CurrencyModel("GYD", "Guyanaese Dollar",))
-        currencyModels.add(CurrencyModel("HKD", "Hong Kong Dollar",))
-        currencyModels.add(CurrencyModel("HNL", "Honduran Lempira"))
-        currencyModels.add(CurrencyModel("HRK", "Croatian Kuna"))
-        currencyModels.add(CurrencyModel("HTG", "Haitian Gourde"))
-        currencyModels.add(CurrencyModel("HUF", "Hungarian Forint"))
-        currencyModels.add(CurrencyModel("IDR", "Indonesian Rupiah"))
-        currencyModels.add(CurrencyModel("ILS", "Israeli New Sheqel"))
-        currencyModels.add(CurrencyModel("IMP", "Manx pound"))
-        currencyModels.add(CurrencyModel("INR", "Indian Rupee"))
-        currencyModels.add(CurrencyModel("IQD", "Iraqi Dinar"))
-        currencyModels.add(CurrencyModel("IRR", "Iranian Rial"))
-        currencyModels.add(CurrencyModel("ISK", "Icelandic Króna"))
-        currencyModels.add(CurrencyModel("JEP", "Jersey Pound"))
-        currencyModels.add(CurrencyModel("JMD", "Jamaican Dollar"))
-        currencyModels.add(CurrencyModel("JOD", "Jordanian Dinar"))
-        currencyModels.add(CurrencyModel("JPY", "Japanese Yen"))
-        currencyModels.add(CurrencyModel("KES", "Kenyan Shilling"))
-        currencyModels.add(CurrencyModel("KGS", "Kyrgystani Som"))
-        currencyModels.add(CurrencyModel("KHR", "Cambodian Riel"))
-        currencyModels.add(CurrencyModel("KMF", "Comorian Franc"))
-        currencyModels.add(CurrencyModel("KPW", "North Korean Won"))
-        currencyModels.add(CurrencyModel("KRW", "South Korean Won"))
-        currencyModels.add(CurrencyModel("KWD", "Kuwaiti Dinar"))
-        currencyModels.add(CurrencyModel("KYD", "Cayman Islands Dollar"))
-        currencyModels.add(CurrencyModel("KZT", "Kazakhstani Tenge"))
-        currencyModels.add(CurrencyModel("LAK", "Laotian Kip"))
-        currencyModels.add(CurrencyModel("LBP", "Lebanese Pound"))
-        currencyModels.add(CurrencyModel("LKR", "Sri Lankan Rupee"))
-        currencyModels.add(CurrencyModel("LRD", "Liberian Dollar"))
-        currencyModels.add(CurrencyModel("LSL", "Lesotho Loti"))
-        currencyModels.add(CurrencyModel("LTL", "Lithuanian Litas"))
-        currencyModels.add(CurrencyModel("LVL", "Latvian Lats"))
-        currencyModels.add(CurrencyModel("LYD", "Libyan Dinar"))
-        currencyModels.add(CurrencyModel("MAD", "Moroccan Dirham"))
-        currencyModels.add(CurrencyModel("MDL", "Moldovan Leu"))
-        currencyModels.add(CurrencyModel("MGA", "Malagasy Ariary"))
-        currencyModels.add(CurrencyModel("MKD", "Macedonian Denar"))
-        currencyModels.add(CurrencyModel("MMK", "Myanma Kyat"))
-        currencyModels.add(CurrencyModel("MNT", "Mongolian Tugrik"))
-        currencyModels.add(CurrencyModel("MOP", "Macanese Pataca"))
-        currencyModels.add(CurrencyModel("MRO", "Mauritanian Ouguiya"))
-        currencyModels.add(CurrencyModel("MUR", "Mauritian Rupee"))
-        currencyModels.add(CurrencyModel("MVR", "Maldivian Rufiyaa"))
-        currencyModels.add(CurrencyModel("MWK", "Malawian Kwacha"))
-        currencyModels.add(CurrencyModel("MXN", "Mexican Peso"))
-        currencyModels.add(CurrencyModel("MYR", "Malaysian Ringgit"))
-        currencyModels.add(CurrencyModel("MZN", "Mozambican Metical"))
-        currencyModels.add(CurrencyModel("NAD", "Namibian Dollar"))
-        currencyModels.add(CurrencyModel("NGN", "Nigerian Naira"))
-        currencyModels.add(CurrencyModel("NIO", "Nicaraguan Córdoba"))
-        currencyModels.add(CurrencyModel("NOK", "Norwegian Krone"))
-        currencyModels.add(CurrencyModel("NPR", "Nepalese Rupee"))
-        currencyModels.add(CurrencyModel("NZD", "New Zealand Dollar"))
-        currencyModels.add(CurrencyModel("OMR", "Omani Rial"))
-        currencyModels.add(CurrencyModel("PAB", "Panamanian Balboa"))
-        currencyModels.add(CurrencyModel("PEN", "Peruvian Nuevo Sol"))
-        currencyModels.add(CurrencyModel("PGK", "Papua New Guinean Kina"))
-        currencyModels.add(CurrencyModel("PHP", "Philippine Peso"))
-        currencyModels.add(CurrencyModel("PKR", "Pakistani Rupee"))
-        currencyModels.add(CurrencyModel("PLN", "Polish Zloty"))
-        currencyModels.add(CurrencyModel("PYG", "Paraguayan Guarani"))
-        currencyModels.add(CurrencyModel("QAR", "Qatari Rial"))
-        currencyModels.add(CurrencyModel("RON", "Romanian Leu"))
-        currencyModels.add(CurrencyModel("RSD", "Serbian Dinar"))
-        currencyModels.add(CurrencyModel("RUB", "Russian Ruble"))
-        currencyModels.add(CurrencyModel("RWF", "Rwandan Franc"))
-        currencyModels.add(CurrencyModel("SAR", "Saudi Riyal"))
-        currencyModels.add(CurrencyModel("SBD", "Solomon Islands Dollar"))
-        currencyModels.add(CurrencyModel("SCR", "Seychellois Rupee"))
-        currencyModels.add(CurrencyModel("SDG", "Sudanese Pound"))
-        currencyModels.add(CurrencyModel("SEK", "Swedish Krona"))
-        currencyModels.add(CurrencyModel("SGD", "Singapore Dollar"))
-        currencyModels.add(CurrencyModel("SHP", "Saint Helena Pound"))
-        currencyModels.add(CurrencyModel("SLE", "Sierra Leonean Leone"))
-        currencyModels.add(CurrencyModel("SLL", "Sierra Leonean Leone"))
-        currencyModels.add(CurrencyModel("SOS", "Somali Shilling"))
-        currencyModels.add(CurrencyModel("SRD", "Surinamese Dollar"))
-        currencyModels.add(CurrencyModel("STD", "São Tomé and Príncipe Dobra"))
-        currencyModels.add(CurrencyModel("SVC", "Salvadoran Colón"))
-        currencyModels.add(CurrencyModel("SYP", "Syrian Pound"))
-        currencyModels.add(CurrencyModel("SZL", "Swazi Lilangeni"))
-        currencyModels.add(CurrencyModel("THB", "Thai Baht"))
-        currencyModels.add(CurrencyModel("TJS", "Tajikistani Somoni"))
-        currencyModels.add(CurrencyModel("TMT", "Turkmenistani Manat"))
-        currencyModels.add(CurrencyModel("TND", "Tunisian Dinar"))
-        currencyModels.add(CurrencyModel("TOP", "Tongan Paʻanga"))
-        currencyModels.add(CurrencyModel("TRY", "Turkish Lira"))
-        currencyModels.add(CurrencyModel("TTD", "Trinidad and Tobago Dollar"))
-        currencyModels.add(CurrencyModel("TWD", "New Taiwan Dollar"))
-        currencyModels.add(CurrencyModel("TZS", "Tanzanian Shilling"))
-        currencyModels.add(CurrencyModel("UAH", "Ukrainian Hryvnia"))
-        currencyModels.add(CurrencyModel("UGX", "Ugandan Shilling"))
-        currencyModels.add(CurrencyModel("USD", "United States Dollar"))
-        currencyModels.add(CurrencyModel("UYU", "Uruguayan Peso"))
-        currencyModels.add(CurrencyModel("UZS", "Uzbekistan Som"))
-        currencyModels.add(CurrencyModel("VEF", "Venezuelan Bolívar Fuerte"))
-        currencyModels.add(CurrencyModel("VND", "Vietnamese Dong"))
-        currencyModels.add(CurrencyModel("VUV", "Vanuatu Vatu"))
-        currencyModels.add(CurrencyModel("WST", "Samoan Tala"))
-        currencyModels.add(CurrencyModel("XAF", "CFA Franc BEAC"))
-        currencyModels.add(CurrencyModel("XAG", "Silver (troy ounce)"))
-        currencyModels.add(CurrencyModel("XAU", "Gold (troy ounce)"))
-        currencyModels.add(CurrencyModel("XCD", "East Caribbean Dollar"))
-        currencyModels.add(CurrencyModel("XDR", "Special Drawing Rights"))
-        currencyModels.add(CurrencyModel("XOF", "CFA Franc BCEAO"))
-        currencyModels.add(CurrencyModel("XPF", "CFP Franc"))
-        currencyModels.add(CurrencyModel("YER", "Yemeni Rial"))
-        currencyModels.add(CurrencyModel("ZAR", "South African Rand"))
-        currencyModels.add(CurrencyModel("ZMK", "Zambian Kwacha (pre-2013)"))
-        currencyModels.add(CurrencyModel("ZMW", "Zambian Kwacha"))
-        currencyModels.add(CurrencyModel("ZWL", "Zimbabwean Dollar"))
-        return currencyModels
+    }.flowOn(dispatcher)
+
+    suspend fun getTopCurrency(base: String, conversion: String): Flow<ApiState<List<ConversionTransaction>>> = flow {
+        when(val response = currencyRemoteDataSource.getLatestRates(base, conversion)){
+            is ApiState.Success -> {
+                val data =  response.data
+                if(data.success == true) {
+                    val list = mutableListOf<ConversionTransaction>()
+                    data.rates?.forEach{
+                        val convertedRate = it.value
+                        val transaction = ConversionTransaction(System.currentTimeMillis(), base, it.key, convertedRate)
+                        list.add(transaction)
+                    }
+                    emit(ApiState.Success(list))
+                }
+            }
+            is ApiState.Failure -> {
+                emit(ApiState.Failure(response.msg))
+            }
+            is ApiState.Loading -> {
+                emit(ApiState.Loading)
+            }
+            is ApiState.Empty -> {
+                emit(ApiState.Empty)
+            }
+        }
+
+    }.flowOn(dispatcher)
+
+    fun observeTransactions(): LiveData<List<ConversionTransaction>> {
+        return currencyLocalDataSource.observeTransactions()
+    }
+
+    suspend fun getHistory(): List<ConversionTransaction> {
+        return currencyLocalDataSource.getHistory()
     }
 }

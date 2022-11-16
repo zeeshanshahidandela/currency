@@ -4,12 +4,15 @@ import com.curreny.converter.data.remote.models.LatestRatesResponse
 import com.curreny.converter.data.remote.models.SymbolsResponseData
 import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.Query
 
-interface CurrencyApiClient {
+public interface CurrencyApiClient {
 
     @GET("symbols")
-    fun getCountries(): SymbolsResponseData
+    suspend fun getCountries(): SymbolsResponseData
 
     @GET("latest")
-    fun getLatestRates(base: String, conversion: String): LatestRatesResponse
+    suspend fun getLatestRates(
+        @Query("base") base: String,
+        @Query("symbols") conversion: String): LatestRatesResponse
 }

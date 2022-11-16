@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/nav_graph">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@+id/conversionFragment">
+
+    <fragment
+        android:id="@+id/conversionFragment"
+        android:name="com.curreny.converter.presentation.ui.fragments.ConversionFragment"
+        android:label="@string/app_name"
+        tools:layout="@layout/fragment_currency_selector" >
+
+        <action
+            android:id="@+id/conversionToDetails"
+            app:destination="@+id/detailsFragment"/>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/detailsFragment"
+        android:name="com.curreny.converter.presentation.ui.fragments.DetailsFragment"
+        android:label="@string/details"
+        tools:layout="@layout/fragment_details" />
 
 </navigation>

@@ -8,6 +8,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 object NetworkComponents {
 
     var baseUrl: String = "https://api.apilayer.com/fixer/"
+    var apiKey: String = "a39xPJ41EWBhJnPCnPf9UPx2ZlyJD0I3"
 
 
     fun DETECT_INTERNET_CONNECTION(context: Context): Boolean {
